@@ -33,7 +33,7 @@ if array_size[1] % 2:
     exit()
 
 # SNN model initialization
-model = snn_model.Layer([array_size[0], array_size[1]])
+model = snn_model.Layer(array_size)
 
 # Create and link the test procedure
 proc = test_procedure.Proc(model, array_size, fault_list, test_algorithm)

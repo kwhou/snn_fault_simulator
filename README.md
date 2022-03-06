@@ -41,3 +41,14 @@ $ python snn_fault_simulator.py
 ```
 
 5. The simulation result can be found in file "report.txt".
+```
+========== Detected Faults ==========
+SIF_bc [0, 0]
+SIF_bc [0, 1]
+SIF_bc [0, 2]
+...
+
+========== Escaped Faults ==========
+
+Fault Coverage: 1.0
+```
