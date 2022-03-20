@@ -24,82 +24,90 @@ import torch
 import torch.nn as nn
 
 # Hardware Related Parameters
-VR = 400.0              # Initial membrane potential of neuron
-DV_MAX_POS = 24.57      # Maximum fault-free dV for weight=1
-DV_MIN_POS = 2.45       # Minimum fault-free dV for weight=1
-DV_MAX_NEG = -4.83      # Maximum fault-free dV for weight=-1
-DV_MIN_NEG = -18.11     # Minimum fault-free dV for weight=-1
-DV_FIF_POS = 25.0       # FIF dV for weight=1
-DV_SIF_POS = 2.38       # SIF dV for weight=1
-DV_FIF_NEG = -20.0      # FIF dV for weight=-1
-DV_SIF_NEG = -4.54      # SIF dV for weight=-1
+VR = 400.0                  # Initial membrane potential of neuron
+DV_MAX_WPOS = 24.57         # Maximum fault-free dV for weight=1
+DV_MIN_WPOS = 2.45          # Minimum fault-free dV for weight=1
+DV_MAX_WNEG = -4.83         # Maximum fault-free dV for weight=-1
+DV_MIN_WNEG = -18.11        # Minimum fault-free dV for weight=-1
+DV_MAX_WZERO = 8.2          # Maximum fault-free dV for weight=0
+DV_MIN_WZERO = -6.1         # Minimum fault-free dV for weight=0
+DV_FIF_WPOS = 25.0          # FIF dV for weight=1
+DV_SIF_WPOS = 2.38          # SIF dV for weight=1
+DV_FIF_WNEG = -20.0         # FIF dV for weight=-1
+DV_SIF_WNEG = -4.54         # SIF dV for weight=-1
+DV_FIF_WZERO_SWP0 = 8.34    # FIF dV for weight=0 and SWP=0
+DV_FIF_WZERO_SWP1 = -6.25   # FIF dV for weight=0 and SWP=1
 
 class Synapse(nn.Module):
-    def __init__(self, array_size):
+    def __init__(self, nn_size):
         super(Synapse, self).__init__()
-        self.array_size = array_size
-        self.nn_size = [array_size[0], array_size[1]//2]
+        self.nn_size = nn_size
         self.weight = nn.Parameter(torch.zeros(self.nn_size))
         self.fault_name = ''
         self.victim_list = []
+        self.sensitive_w = ''
+        self.sensitive_swp = ''
         
     def initialize(self):
         self.weight[:,:] = 0
         self.fault_name = ''
         self.victim_list = []
+        self.sensitive_w = ''
+        self.sensitive_swp = ''
         
     def write_synapse(self, addr, data):
-        if data == 1:
-            location = [addr[0], addr[1] * 2]
-        elif data == -1:
-            location = [addr[0], addr[1] * 2 + 1]
-        else:
-            location = 0
-        
-        if location in self.victim_list:
+        if addr in self.victim_list and data == self.sensitive_w:
             if data == 1:
                 if self.fault_name == 'SIF':
-                    self.weight[addr[0]][addr[1]] = DV_SIF_POS
+                    self.weight[addr[0]][addr[1]] = DV_SIF_WPOS
                 elif self.fault_name == 'FIF':
-                    self.weight[addr[0]][addr[1]] = DV_FIF_POS
+                    self.weight[addr[0]][addr[1]] = DV_FIF_WPOS
             elif data == -1:
                 if self.fault_name == 'SIF':
-                    self.weight[addr[0]][addr[1]] = DV_SIF_NEG
+                    self.weight[addr[0]][addr[1]] = DV_SIF_WNEG
                 elif self.fault_name == 'FIF':
-                    self.weight[addr[0]][addr[1]] = DV_FIF_NEG
+                    self.weight[addr[0]][addr[1]] = DV_FIF_WNEG
             else:
-                self.weight[addr[0]][addr[1]] = 0
+                if self.fault_name == 'FIF':
+                    if self.sensitive_swp:
+                        self.weight[addr[0]][addr[1]] = DV_FIF_WZERO_SWP1
+                    else:
+                        self.weight[addr[0]][addr[1]] = DV_FIF_WZERO_SWP0
+                else:
+                    self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_WZERO, DV_MAX_WZERO)
         else:
             if data == 1:
-                self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_POS, DV_MAX_POS)
+                self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_WPOS, DV_MAX_WPOS)
             elif data == -1:
-                self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_NEG, DV_MAX_NEG)
+                self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_WNEG, DV_MAX_WNEG)
             else:
-                self.weight[addr[0]][addr[1]] = 0
+                self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_WZERO, DV_MAX_WZERO)
         
-    def set_victim_list(self, fault, location):
-        if location[0] >= self.array_size[0] or \
-            location[1] >= self.array_size[1]:
+    def set_victim_list(self, fault, sensitive_w, sensitive_swp, location):
+        if location[0] >= self.nn_size[0] or \
+            location[1] >= self.nn_size[1]:
             print("Error: {} out of array size.".format(location))
         else:
             self.victim_list = []
+            self.sensitive_w = sensitive_w
+            self.sensitive_swp = sensitive_swp
             if fault == 'SIF_bc':
                 self.fault_name = 'SIF'
                 self.victim_list.append(location)
             elif fault == 'SIF_r':
                 self.fault_name = 'SIF'
                 row = location[0]
-                for col in range(self.array_size[1]):
+                for col in range(self.nn_size[1]):
                     self.victim_list.append([row, col])
             elif fault == 'SIF_ra':
                 self.fault_name = 'SIF'
                 row = location[0]
-                for col in range(location[1], self.array_size[1]):
+                for col in range(location[1], self.nn_size[1]):
                     self.victim_list.append([row, col])
             elif fault == 'SIF_c':
                 self.fault_name = 'SIF'
                 col = location[1]
-                for row in range(self.array_size[0]):
+                for row in range(self.nn_size[0]):
                     self.victim_list.append([row, col])
             elif fault == 'SIF_cb':
                 self.fault_name = 'SIF'
@@ -109,11 +117,16 @@ class Synapse(nn.Module):
             elif fault == 'SIF_ca':
                 self.fault_name = 'SIF'
                 col = location[1]
-                for row in range(location[0], self.array_size[0]):
+                for row in range(location[0], self.nn_size[0]):
                     self.victim_list.append([row, col])
             elif fault == 'FIF_bc':
                 self.fault_name = 'FIF'
                 self.victim_list.append(location)
+            elif fault == 'FIF_ca':
+                self.fault_name = 'FIF'
+                col = location[1]
+                for row in range(location[0], self.nn_size[0]):
+                    self.victim_list.append([row, col])
             else:
                 print("Error: {} not recognized as a supported fault.".format(fault))
             
@@ -121,13 +134,12 @@ class Synapse(nn.Module):
         return torch.matmul(input_spike, self.weight)
 
 class Layer(nn.Module):
-    def __init__(self, array_size):
+    def __init__(self, nn_size):
         super(Layer, self).__init__()
-        self.array_size = array_size
-        self.nn_size = [array_size[0], array_size[1]//2]
+        self.nn_size = nn_size
         self.swp = 0
         self.vth = 500.0
-        self.synapse = Synapse(array_size)
+        self.synapse = Synapse(nn_size)
         
     def initialize(self):
         self.swp = 0
@@ -148,7 +160,7 @@ class Layer(nn.Module):
         return out
         
     def reset(self, sout, v):
-        return torch.where(torch.eq(sout, 1), torch.zeros_like(v), v)
+        return torch.where(torch.eq(sout, 1), torch.full_like(v, VR), v)
     
     def forward(self, in_spike):
         # in_spike size: (num_of_tick, num_of_input)
@@ -174,14 +186,19 @@ class Layer(nn.Module):
         
         return output
 
-# model = Layer([array_size[0], array_size[1]])
-
-# model.synapse.set_victim_list('FIF_bc', [1,2])
-# print(model.synapse.victim_list)
-
-# model.synapse.write_synapse([1,1], 1)
-# print(model.synapse.weight[1,1])
-
-# output = model(torch.ones(5,array_size[0]))
-# print(output)
-# print(output.size())
+if __name__ == '__main__':
+    array_size = [2, 2]
+    model = Layer(array_size)
+    
+    # model.synapse.set_victim_list('SIF_bc', 1, 0, [1,1])
+    model.synapse.set_victim_list('FIF_bc', 1, 0, [1,1])
+    print(model.synapse.fault_name)
+    print(model.synapse.victim_list)
+    print(model.synapse.sensitive_w)
+    print(model.synapse.sensitive_swp)
+    
+    model.synapse.write_synapse([1,1], 1)
+    print(model.synapse.weight)
+    
+    output = model(torch.ones(41,array_size[0]))
+    print(output)

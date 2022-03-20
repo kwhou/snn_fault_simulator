@@ -12,14 +12,13 @@
 
 2. Set the fault list in the file "fault_list.txt".
 ```
-# fault
-SIF_bc
-SIF_r
-SIF_ra
-SIF_c
-SIF_cb
-SIF_ca
-FIF_bc
+# fault  sensitive_w  sensitive_swp
+SIF_bc       1              0
+SIF_bc      -1              1
+SIF_r        1              0
+SIF_r       -1              1
+SIF_ra       1              0
+SIF_ra      -1              1
 ```
 
 3. Set the test algorithm in the file "test_algorithm.txt".
@@ -29,8 +28,11 @@ SWP 0
 VTH 500
 W 1
 S 5 41
+W 0
+SZ 12
 SWP 1
 VTH 300
+SZ 16
 W -1
 S 6 21
 ```
@@ -43,9 +45,9 @@ $ python snn_fault_simulator.py
 5. The simulation result can be found in file "report.txt".
 ```
 ========== Detected Faults ==========
-SIF_bc [0, 0]
-SIF_bc [0, 1]
-SIF_bc [0, 2]
+SIF_bc sensitive_w=1 sensitive_swp=0 location=[0, 0]
+SIF_bc sensitive_w=1 sensitive_swp=0 location=[0, 1]
+SIF_bc sensitive_w=1 sensitive_swp=0 location=[0, 2]
 ...
 
 ========== Escaped Faults ==========

@@ -37,7 +37,7 @@ def read_fault_list(file_name):
         for line in lines:
             arg = line.split()
             if arg[0][0] != '#':
-                fault_list.append(arg[0])
+                fault_list.append([arg[0], int(arg[1]), int(arg[2])])
     return fault_list
 
 def read_test_algorithm(file_name):

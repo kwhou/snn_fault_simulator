@@ -28,15 +28,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("{} device is used by SNN Fault Simulator.".format(device))
 
 class Proc:
-    def __init__(self, dut, array_size, fault_list, test_algorithm):
-        if array_size[1] % 2 == 1:
-            print("Error: number of columns must be an even number.")
-        else:
-            self.dut = dut.to(device)
-            self.array_size = array_size
-            self.nn_size = [array_size[0], array_size[1]//2]
-            self.fault_list = fault_list
-            self.test_algorithm = test_algorithm
+    def __init__(self, dut, nn_size, fault_list, test_algorithm):
+        self.dut = dut.to(device)
+        self.nn_size = nn_size
+        self.fault_list = fault_list
+        self.test_algorithm = test_algorithm
         
     def get_tf(self, spike):
         non_zero = spike > 0
@@ -50,13 +46,19 @@ class Proc:
             for col in range(self.nn_size[1]):
                 self.dut.synapse.write_synapse([row, col], d)
 
-    def spike_operation(self, tf_min, tf_max):
+    def spike_operation(self, tf_min, tf_max=False):
         for row in range(self.nn_size[0]):
-            input_spike = torch.zeros((tf_max, self.nn_size[0]))
+            if not tf_max:
+                input_spike = torch.zeros((tf_min, self.nn_size[0]))
+            else:
+                input_spike = torch.zeros((tf_max, self.nn_size[0]))
             input_spike[:,row] = 1
             output = self.dut(input_spike.to(device))
             tf = self.get_tf(output)
-            faulty = ((tf < tf_min).int() + (tf > tf_max).int()).sum().item()
+            if not tf_max:
+                faulty = (tf <= tf_min).int().sum().item()
+            else:
+                faulty = ((tf < tf_min).int() + (tf > tf_max).int()).sum().item()
             if faulty:
                 return True
         return False
@@ -74,6 +76,12 @@ class Proc:
             elif op[0] == 'S':
                 if debug: print("Execute Op: {} {} {}".format(op[0], op[1], op[2]))
                 faulty = self.spike_operation(int(op[1]), int(op[2]))
+                if faulty:
+                    detection = True
+                    break
+            elif op[0] == 'SZ':
+                if debug: print("Execute Op: {} {}".format(op[0], op[1]))
+                faulty = self.spike_operation(int(op[1]))
                 if faulty:
                     detection = True
                     break
@@ -99,33 +107,33 @@ class Proc:
         defected_fault_list = []
         escaped_fault_list = []
         
-        for fault in self.fault_list:
-            for row in range(self.array_size[0]):
-                for col in range(self.array_size[1]):
+        for fault, sensitive_w, sensitive_swp in self.fault_list:
+            for row in range(self.nn_size[0]):
+                for col in range(self.nn_size[1]):
                     # set victim_list
-                    print("Injecting Fault: {} {}".format(fault, [row, col]))
-                    self.dut.synapse.set_victim_list(fault, [row, col])
+                    print("Injecting Fault {} sensitive_w={} sensitive_swp={} location={}".format(fault, sensitive_w, sensitive_swp, [row, col]))
+                    self.dut.synapse.set_victim_list(fault, sensitive_w, sensitive_swp, [row, col])
                     
                     # apply test algorithm
                     detection = self.apply_test_algorithm(debug=DEBUG)
                     
                     if detection:
                         print("Detected!\n")
-                        defected_fault_list.append([fault, [row, col]])
+                        defected_fault_list.append([fault, sensitive_w, sensitive_swp, [row, col]])
                     else:
                         print("Escaped!\n")
-                        escaped_fault_list.append([fault, [row, col]])
+                        escaped_fault_list.append([fault, sensitive_w, sensitive_swp, [row, col]])
                         
         fault_coverage = self.get_fault_coverage(defected_fault_list, escaped_fault_list)
         
         with open('report.txt', 'w') as f:
             f.write("========== Detected Faults ==========\n")
             for fault in defected_fault_list:
-                f.write("{} {}\n".format(fault[0], fault[1]))
+                f.write("{} sensitive_w={} sensitive_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
                 
             f.write("\n========== Escaped Faults ==========\n")
             for fault in escaped_fault_list:
-                f.write("{} {}\n".format(fault[0], fault[1]))
+                f.write("{} sensitive_w={} sensitive_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
                 
             f.write("\nFault Coverage: {}\n".format(fault_coverage))
             

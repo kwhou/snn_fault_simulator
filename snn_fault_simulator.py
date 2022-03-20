@@ -28,15 +28,17 @@ array_size = read_input.read_array_size("array_size.txt")
 fault_list = read_input.read_fault_list("fault_list.txt")
 test_algorithm = read_input.read_test_algorithm("test_algorithm.txt")
 
+# Verify the array size
 if array_size[1] % 2:
     print("Error: number of columns must be an even number.")
     exit()
+nn_size = [array_size[0], array_size[1]//2]
 
 # SNN model initialization
-model = snn_model.Layer(array_size)
+model = snn_model.Layer(nn_size)
 
 # Create and link the test procedure
-proc = test_procedure.Proc(model, array_size, fault_list, test_algorithm)
+proc = test_procedure.Proc(model, nn_size, fault_list, test_algorithm)
 
 # Run fault simulation
 proc.test()
