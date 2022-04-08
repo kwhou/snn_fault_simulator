@@ -45,18 +45,18 @@ class Synapse(nn.Module):
         self.weight = nn.Parameter(torch.zeros(self.nn_size))
         self.fault_name = ''
         self.victim_list = []
-        self.sensitive_w = ''
-        self.sensitive_swp = ''
+        self.depend_w = ''
+        self.depend_swp = ''
         
     def initialize(self):
         self.weight[:,:] = 0
         self.fault_name = ''
         self.victim_list = []
-        self.sensitive_w = ''
-        self.sensitive_swp = ''
+        self.depend_w = ''
+        self.depend_swp = ''
         
     def write_synapse(self, addr, data):
-        if addr in self.victim_list and data == self.sensitive_w:
+        if addr in self.victim_list and data == self.depend_w:
             if data == 1:
                 if self.fault_name == 'SIF':
                     self.weight[addr[0]][addr[1]] = DV_SIF_WPOS
@@ -69,7 +69,7 @@ class Synapse(nn.Module):
                     self.weight[addr[0]][addr[1]] = DV_FIF_WNEG
             else:
                 if self.fault_name == 'FIF':
-                    if self.sensitive_swp:
+                    if self.depend_swp:
                         self.weight[addr[0]][addr[1]] = DV_FIF_WZERO_SWP1
                     else:
                         self.weight[addr[0]][addr[1]] = DV_FIF_WZERO_SWP0
@@ -83,14 +83,14 @@ class Synapse(nn.Module):
             else:
                 self.weight[addr[0]][addr[1]] = random.uniform(DV_MIN_WZERO, DV_MAX_WZERO)
         
-    def set_victim_list(self, fault, sensitive_w, sensitive_swp, location):
+    def set_victim_list(self, fault, depend_w, depend_swp, location):
         if location[0] >= self.nn_size[0] or \
             location[1] >= self.nn_size[1]:
             print("Error: {} out of array size.".format(location))
         else:
             self.victim_list = []
-            self.sensitive_w = sensitive_w
-            self.sensitive_swp = sensitive_swp
+            self.depend_w = depend_w
+            self.depend_swp = depend_swp
             if fault == 'SIF_bc':
                 self.fault_name = 'SIF'
                 self.victim_list.append(location)
@@ -194,8 +194,8 @@ if __name__ == '__main__':
     model.synapse.set_victim_list('FIF_bc', 1, 0, [1,1])
     print(model.synapse.fault_name)
     print(model.synapse.victim_list)
-    print(model.synapse.sensitive_w)
-    print(model.synapse.sensitive_swp)
+    print(model.synapse.depend_w)
+    print(model.synapse.depend_swp)
     
     model.synapse.write_synapse([1,1], 1)
     print(model.synapse.weight)

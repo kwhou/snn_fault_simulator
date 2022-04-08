@@ -107,33 +107,33 @@ class Proc:
         defected_fault_list = []
         escaped_fault_list = []
         
-        for fault, sensitive_w, sensitive_swp in self.fault_list:
+        for fault, depend_w, depend_swp in self.fault_list:
             for row in range(self.nn_size[0]):
                 for col in range(self.nn_size[1]):
                     # set victim_list
-                    print("Injecting Fault {} sensitive_w={} sensitive_swp={} location={}".format(fault, sensitive_w, sensitive_swp, [row, col]))
-                    self.dut.synapse.set_victim_list(fault, sensitive_w, sensitive_swp, [row, col])
+                    print("Injecting Fault {} depend_w={} depend_swp={} location={}".format(fault, depend_w, depend_swp, [row, col]))
+                    self.dut.synapse.set_victim_list(fault, depend_w, depend_swp, [row, col])
                     
                     # apply test algorithm
                     detection = self.apply_test_algorithm(debug=DEBUG)
                     
                     if detection:
                         print("Detected!\n")
-                        defected_fault_list.append([fault, sensitive_w, sensitive_swp, [row, col]])
+                        defected_fault_list.append([fault, depend_w, depend_swp, [row, col]])
                     else:
                         print("Escaped!\n")
-                        escaped_fault_list.append([fault, sensitive_w, sensitive_swp, [row, col]])
+                        escaped_fault_list.append([fault, depend_w, depend_swp, [row, col]])
                         
         fault_coverage = self.get_fault_coverage(defected_fault_list, escaped_fault_list)
         
         with open('report.txt', 'w') as f:
             f.write("========== Detected Faults ==========\n")
             for fault in defected_fault_list:
-                f.write("{} sensitive_w={} sensitive_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
+                f.write("{} depend_w={} depend_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
                 
             f.write("\n========== Escaped Faults ==========\n")
             for fault in escaped_fault_list:
-                f.write("{} sensitive_w={} sensitive_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
+                f.write("{} depend_w={} depend_swp={} location={}\n".format(fault[0], fault[1], fault[2], fault[3]))
                 
             f.write("\nFault Coverage: {}\n".format(fault_coverage))
             
