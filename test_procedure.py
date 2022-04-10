@@ -41,12 +41,12 @@ class Proc:
         tf = cum[-1,:] + 1
         return tf
         
-    def write_operation(self, d):
+    def write_command(self, d):
         for row in range(self.nn_size[0]):
             for col in range(self.nn_size[1]):
                 self.dut.synapse.write_synapse([row, col], d)
 
-    def spike_operation(self, tf_min, tf_max=False):
+    def spike_command(self, tf_min, tf_max=False):
         for row in range(self.nn_size[0]):
             if not tf_max:
                 input_spike = torch.zeros((tf_min, self.nn_size[0]))
@@ -69,28 +69,28 @@ class Proc:
         
     def apply_test_algorithm(self, debug):
         detection = False
-        for op in self.test_algorithm:
-            if op[0] == 'W':
-                if debug: print("Execute Op: {} {}".format(op[0], op[1]))
-                self.write_operation(int(op[1]))
-            elif op[0] == 'S':
-                if debug: print("Execute Op: {} {} {}".format(op[0], op[1], op[2]))
-                faulty = self.spike_operation(int(op[1]), int(op[2]))
+        for cmd in self.test_algorithm:
+            if cmd[0] == 'W':
+                if debug: print("Execute Command: {} {}".format(cmd[0], cmd[1]))
+                self.write_command(int(cmd[1]))
+            elif cmd[0] == 'S':
+                if debug: print("Execute Command: {} {} {}".format(cmd[0], cmd[1], cmd[2]))
+                faulty = self.spike_command(int(cmd[1]), int(cmd[2]))
                 if faulty:
                     detection = True
                     break
-            elif op[0] == 'SZ':
-                if debug: print("Execute Op: {} {}".format(op[0], op[1]))
-                faulty = self.spike_operation(int(op[1]))
+            elif cmd[0] == 'SZ':
+                if debug: print("Execute Command: {} {}".format(cmd[0], cmd[1]))
+                faulty = self.spike_command(int(cmd[1]))
                 if faulty:
                     detection = True
                     break
-            elif op[0] == 'VTH':
-                if debug: print("Execute Op: {} {}".format(op[0], op[1]))
-                self.dut.set_vth(float(op[1]))
-            elif op[0] == 'SWP':
-                if debug: print("Execute Op: {} {}".format(op[0], op[1]))
-                self.dut.set_swp(int(op[1]))
+            elif cmd[0] == 'VTH':
+                if debug: print("Execute Command: {} {}".format(cmd[0], cmd[1]))
+                self.dut.set_vth(float(cmd[1]))
+            elif cmd[0] == 'SWP':
+                if debug: print("Execute Command: {} {}".format(cmd[0], cmd[1]))
+                self.dut.set_swp(int(cmd[1]))
         return detection
         
     def test_fault_free(self):

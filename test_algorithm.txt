@@ -1,4 +1,4 @@
-# operation
+# command
 SWP 0
 VTH 500
 W 1
