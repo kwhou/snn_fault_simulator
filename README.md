@@ -23,7 +23,7 @@ SIF_ra     -1           1
 
 3. Set the test algorithm in the file "test_algorithm.txt".
 ```
-# operation
+# command
 SWP 0
 VTH 500
 W 1
