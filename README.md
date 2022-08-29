@@ -54,3 +54,8 @@ SIF_bc depend_w=1 depend_swp=0 location=[0, 2]
 
 Fault Coverage: 1.0
 ```
+
+## Citation
+
+If you use this code in your work, please cite the following paper.
+K.-W. Hou, H.-H. Cheng,  C. Tung, C.-W. Wu and J.-M. Lu, "Fault Modeling and Testing of Memristor-Based Spiking Neural Networks", in Proc. IEEE Int. Test Conf. (ITC), Anaheim, Sept. 2022.
